@@ -6,6 +6,8 @@ const getdepartments = require("./queryRequests/listOfDepartments");
 const getEmployees = require("./queryRequests/listOfEmployees");
 const deleteEmployee = require("./queryRequests/deleteEmployee");
 const addEmployee = require("./queryRequests/addEmployee");
+const getManagers = require("./queryRequests/getManagers");
+const viewByTable = require("./queryRequests/viewbytable");
 
 // kickOff();
 
@@ -81,9 +83,10 @@ function viewAllEmpByDep() {
 function removeEmployee() {
     let EmployeeArray = [];
     getEmployees(
-            "SELECT CONCAT(employee.first_name, ' ', employee.last_name) as full_name FROM employee"
+            "SELECT CONCAT(employee.first_name, ' ', employee.last_name) as full_name, employee.id as id FROM employee WHERE first_name OR last_name IS NOT NULL"
         )
         .then((message) => {
+            console.log(message.length);
             for (let i = 0; i < message.length; i++) {
                 let employee = message[i].full_name;
                 EmployeeArray.push(employee);
@@ -92,7 +95,7 @@ function removeEmployee() {
                 .prompt([{
                     name: "viewEmployees",
                     type: "list",
-                    message: "What employee do you want to remove?",
+                    message: "What Employee do you want to terminate?",
                     choices: EmployeeArray,
                 }, ])
                 .then(function(response) {
@@ -102,12 +105,30 @@ function removeEmployee() {
                 });
         })
         .catch(function(error) {
-            console.log("not Working");
+            console.log("not Working" + error);
         });
 }
 
 //add employee
-function addNewemployee() {
+async function addNewemployee() {
+    let EmployeeArray = [];
+    let message = await getEmployees(
+        "SELECT CONCAT(employee.first_name, ' ', employee.last_name) as full_name, employee.id as id FROM employee WHERE first_name OR last_name IS NOT NULL"
+    );
+    for (let i = 0; i < message.length; i++) {
+        let employee = message[i].full_name;
+        EmployeeArray.push(employee);
+    }
+    let departmentArray = [];
+    let departmentList = await getEmployees(
+        "SELECT role.title as name, role.id as id FROM role"
+    );
+    for (let i = 0; i < departmentList.length; i++) {
+        let department = departmentList[i].name;
+        departmentArray.push(department);
+    }
+    console.log(departmentArray);
+
     inquirer
         .prompt([{
                 name: "newEmployeeFirstName",
@@ -121,23 +142,58 @@ function addNewemployee() {
             },
             {
                 name: "newEmployeeroleID",
-                type: "input",
-                message: "What is the employees role_id?",
+                type: "list",
+                message: "What is the employees role?",
+                choices: departmentArray,
             },
             {
                 name: "newEmployeeManagerID",
-                type: "input",
+                type: "list",
                 message: "What is the employees Manager ID?",
+                choices: EmployeeArray,
             },
         ])
         .then(function(data) {
+            let id;
+            for (let i = 0; i < departmentList.length; i++) {
+                if (departmentList[i].name === data.newEmployeeroleID) {
+                    id = departmentList[i].id;
+                    break;
+                }
+            }
+            let managerID;
+            for (let i = 0; i < message.length; i++) {
+                if (message[i].full_name === data.newEmployeeManagerID) {
+                    managerID = message[i].full_name;
+                    break;
+                }
+            }
             addEmployee(
                 data.newEmployeeFirstName,
                 data.newEmployeeLastName,
-                data.newEmployeeroleID,
-                data.newEmployeeManagerID
+                id,
+                data.managerID
             );
         });
 }
 
-addNewemployee();
+//remove an employee
+function viewbyArea() {
+    inquirer
+        .prompt([{
+            name: "viewByArea",
+            type: "list",
+            message: "What Employee do you want to terminate?",
+            choices: ["department", "role", "Employee"],
+        }, ])
+        .then(function(response) {
+            viewByTable(response.viewByArea).then((data) => {
+                console.table(data);
+            });
+        })
+        .catch(function(error) {
+            console.log("not Working" + error);
+        });
+}
+
+viewbyArea();

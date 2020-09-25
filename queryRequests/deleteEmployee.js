@@ -14,7 +14,9 @@ module.exports = function deleteEmployee(firstName, lastName) {
     connection.connect(function() {
         connection.query(
             `DELETE FROM employee WHERE employee.first_name = ? AND employee.last_name = ?;`, [firstName, lastName],
-            function(error, data) {}
+            function(error, data) {
+                console.table(data);
+            }
         );
     });
 };
