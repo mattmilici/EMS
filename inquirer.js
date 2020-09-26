@@ -1,15 +1,7 @@
-const mysql = require("mysql");
 const inquirer = require("inquirer");
-const viewAllEmployeesQuery = require("./queryRequests/viewAllEmployeesQuery");
-const viewEmployeesByDepartment = require("./queryRequests/viewAllEmployeesByDeptarment");
-const getdepartments = require("./queryRequests/listOfDepartments");
-const getEmployees = require("./queryRequests/listOfEmployees");
-const deleteEmployee = require("./queryRequests/deleteEmployee");
-const addEmployee = require("./queryRequests/addEmployee");
-const getManagers = require("./queryRequests/getManagers");
-const viewByTable = require("./queryRequests/viewbytable");
+const orm = require("./queryRequests/orm");
 
-// kickOff();
+kickOff();
 
 function kickOff() {
     inquirer
@@ -22,9 +14,10 @@ function kickOff() {
                 "View All Employees by Department",
                 "View All Employees by Manager",
                 "Add Employee",
+                "Add role",
+                "Add department",
                 "Remove Employee",
-                "Update Employee Role",
-                "Update Employee Manager",
+                "Update Employee Role and/or Department",
             ],
         }, ])
         .then(function(response) {
@@ -32,31 +25,40 @@ function kickOff() {
             switch (answer) {
                 case "View All Employees":
                     //displays table of all employees
-                    viewAllEmployeesQuery();
+                    orm.CompanyDetailByEmployee(kickOff);
                     break;
                 case "View All Employees by Department":
-                    viewAllEmpByDep();
+                    viewAllEmpByDep(kickOff);
                     break;
-                case "View All Employees by Manager":
+                case "View by Table":
+                    viewByTable(kickOff);
                     break;
+                    // case "View All Employees by Manager":
+                    //     break;
                 case "Add Employee":
-                    addNewemployee();
+                    addNewemployee(kickOff);
+                    break;
+                case "Add role":
+                    newRole(kickOff);
+                    break;
+                case "Add department":
+                    addNewDepartment(kickOff);
                     break;
                 case "Remove Employee":
-                    removeEmployee();
+                    removeEmployee(kickOff);
                     break;
-                case "Update Employee Role":
-                    break;
-                case "Update Employee Manager":
+                case "Update Employee Role and/or Department":
+                    updateEmployee(kickOff);
                     break;
             }
         });
 }
 
 //prompt generated if the user selects to view employees by deparment
-function viewAllEmpByDep() {
+function viewAllEmpByDep(callback) {
     let departmentArray = [];
-    getdepartments("SELECT department.name FROM department")
+    orm
+        .getDepartments("SELECT department.name FROM department")
         .then((message) => {
             for (let i = 0; i < message.length; i++) {
                 let department = message[i].name;
@@ -71,7 +73,8 @@ function viewAllEmpByDep() {
                 }, ])
                 .then(function(response) {
                     const answer = response.viewbyDepartment;
-                    viewEmployeesByDepartment(answer);
+                    orm.EmployeesByID(answer);
+                    callback();
                 });
         })
         .catch(function(error) {
@@ -80,11 +83,10 @@ function viewAllEmpByDep() {
 }
 
 //remove an employee
-function removeEmployee() {
+function removeEmployee(callback) {
     let EmployeeArray = [];
-    getEmployees(
-            "SELECT CONCAT(employee.first_name, ' ', employee.last_name) as full_name, employee.id as id FROM employee WHERE first_name OR last_name IS NOT NULL"
-        )
+    orm
+        .employeesFullName()
         .then((message) => {
             console.log(message.length);
             for (let i = 0; i < message.length; i++) {
@@ -101,7 +103,8 @@ function removeEmployee() {
                 .then(function(response) {
                     const answer = response.viewEmployees;
                     let nameSplit = answer.split(" ");
-                    deleteEmployee(nameSplit[0], nameSplit[1]);
+                    orm.deleteEmployee(nameSplit[0], nameSplit[1]);
+                    callback();
                 });
         })
         .catch(function(error) {
@@ -110,24 +113,21 @@ function removeEmployee() {
 }
 
 //add employee
-async function addNewemployee() {
+async function addNewemployee(callback) {
     let EmployeeArray = [];
-    let message = await getEmployees(
-        "SELECT CONCAT(employee.first_name, ' ', employee.last_name) as full_name, employee.id as id FROM employee WHERE first_name OR last_name IS NOT NULL"
-    );
+    let message = await orm.employeesFullName();
     for (let i = 0; i < message.length; i++) {
         let employee = message[i].full_name;
         EmployeeArray.push(employee);
     }
     let departmentArray = [];
-    let departmentList = await getEmployees(
+    let departmentList = await orm.getDepartments(
         "SELECT role.title as name, role.id as id FROM role"
     );
     for (let i = 0; i < departmentList.length; i++) {
         let department = departmentList[i].name;
         departmentArray.push(department);
     }
-    console.log(departmentArray);
 
     inquirer
         .prompt([{
@@ -164,36 +164,145 @@ async function addNewemployee() {
             let managerID;
             for (let i = 0; i < message.length; i++) {
                 if (message[i].full_name === data.newEmployeeManagerID) {
-                    managerID = message[i].full_name;
+                    managerID = message[i].id;
                     break;
                 }
             }
-            addEmployee(
+            orm.addnewEmployee(
                 data.newEmployeeFirstName,
                 data.newEmployeeLastName,
                 id,
-                data.managerID
+                managerID
             );
+            callback();
         });
 }
 
 //remove an employee
-function viewbyArea() {
+function viewByTable(callback) {
     inquirer
         .prompt([{
             name: "viewByArea",
             type: "list",
-            message: "What Employee do you want to terminate?",
+            message: "What view do you want to see?",
             choices: ["department", "role", "Employee"],
         }, ])
         .then(function(response) {
-            viewByTable(response.viewByArea).then((data) => {
+            orm.SelectTableView(response.viewByArea).then((data) => {
                 console.table(data);
             });
+            callback();
         })
         .catch(function(error) {
             console.log("not Working" + error);
         });
 }
 
-viewbyArea();
+async function updateEmployee(callback) {
+    let roleTable = await orm.listOfDepartments();
+    let employeeTable = await orm.listOfEmployees();
+    let roleArray = [];
+    for (let i = 0; i < roleTable.length; i++) {
+        let roles = roleTable[i].title;
+        roleArray.push(roles);
+    }
+    let employeeArray = [];
+    for (let i = 0; i < employeeTable.length; i++) {
+        let employees = employeeTable[i].first_name;
+        employeeArray.push(employees);
+    }
+    inquirer
+        .prompt([{
+                name: "employee",
+                type: "list",
+                message: "Who is the employee you want to update?",
+                choices: employeeArray,
+            },
+            {
+                name: "role",
+                type: "list",
+                message: "What is the new role of this employee?",
+                choices: roleArray,
+            },
+            {
+                name: "manager",
+                type: "list",
+                message: "Who is the new manager for this employee?",
+                choices: employeeArray,
+            },
+        ])
+        .then(function(response) {
+            let employeeid;
+            for (let i = 0; i < employeeTable.length; i++) {
+                if (response.employee === employeeTable[i].first_name) {
+                    employeeid = employeeTable[i].id;
+                }
+            }
+            let roleid;
+            for (let i = 0; i < roleTable.length; i++) {
+                if (response.role === roleTable[i].title) {
+                    roleid = roleTable[i].id;
+                }
+            }
+            let managerid;
+            for (let i = 0; i < employeeTable.length; i++) {
+                if (response.manager === employeeTable[i].first_name) {
+                    managerid = employeeTable[i].id;
+                }
+            }
+            orm.updateEmployee(roleid, managerid, employeeid);
+            callback();
+        });
+}
+
+async function addNewDepartment(callback) {
+    inquirer
+        .prompt([{
+            name: "newDepartment",
+            type: "input",
+            message: "What is the name of the new department you would like to add?",
+        }, ])
+        .then(function(response) {
+            orm.addDepartment(response.newDepartment);
+            callback();
+        });
+}
+
+async function newRole(callback) {
+    let departmentArray = [];
+    let departmentList = await orm.getDepartments("SELECT * FROM department");
+    for (let i = 0; i < departmentList.length; i++) {
+        let department = departmentList[i].name;
+        departmentArray.push(department);
+    }
+
+    inquirer
+        .prompt([{
+                name: "newRoleTitle",
+                type: "input",
+                message: "What is the tile of the new role you would like to add?",
+            },
+            {
+                name: "newRoleSalary",
+                type: "input",
+                message: "What is the salary of the new role you would like to add?",
+            },
+            {
+                name: "newRoleDepartmentID",
+                type: "list",
+                message: "What is the department of the new role you would like to add?",
+                choices: departmentArray,
+            },
+        ])
+        .then(function(response) {
+            let id;
+            for (let i = 0; i < departmentList.length; i++) {
+                if (departmentList[i].name === response.newRoleDepartmentID) {
+                    id = departmentList[i].id;
+                    break;
+                }
+            }
+            orm.addRole(response.newRoleTitle, response.newRoleSalary, id);
+            callback();
+        });
+}
