@@ -1,5 +1,6 @@
 const inquirer = require("inquirer");
 const orm = require("./queryRequests/orm");
+const cTable = require("console.table");
 
 kickOff();
 
@@ -33,8 +34,9 @@ function kickOff() {
                 case "View by Table":
                     viewByTable(kickOff);
                     break;
-                    // case "View All Employees by Manager":
-                    //     break;
+                case "View All Employees by Manager":
+                    viewEmployeesByManager(kickOff);
+                    break;
                 case "Add Employee":
                     addNewemployee(kickOff);
                     break;
@@ -80,6 +82,14 @@ function viewAllEmpByDep(callback) {
         .catch(function(error) {
             console.log("not Working");
         });
+}
+
+async function viewEmployeesByManager(callback) {
+    let managerFilter = await orm.getDepartments(
+        "SELECT e.id as id, e.first_name as first_name, e.last_name as last_name, role.title as title, CONCAT(m.first_name,' ', m.last_name ) AS 'Manager' FROM employee e INNER JOIN role ON role.id = e.role_id INNER JOIN department ON department.id = role.department_id left JOIN employee m ON m.id = e.manager_id ORDER BY Manager;"
+    );
+    console.table(managerFilter);
+    callback();
 }
 
 //remove an employee
@@ -200,23 +210,25 @@ function viewByTable(callback) {
 
 async function updateEmployee(callback) {
     let roleTable = await orm.listOfDepartments();
-    let employeeTable = await orm.listOfEmployees();
+    let employeeTable = await orm.employeesFullName();
+
     let roleArray = [];
     for (let i = 0; i < roleTable.length; i++) {
         let roles = roleTable[i].title;
         roleArray.push(roles);
     }
-    let employeeArray = [];
-    for (let i = 0; i < employeeTable.length; i++) {
-        let employees = employeeTable[i].first_name;
-        employeeArray.push(employees);
+    let EmployeeArray = [];
+    let message = await orm.employeesFullName();
+    for (let i = 0; i < message.length; i++) {
+        let employee = message[i].full_name;
+        EmployeeArray.push(employee);
     }
     inquirer
         .prompt([{
                 name: "employee",
                 type: "list",
                 message: "Who is the employee you want to update?",
-                choices: employeeArray,
+                choices: EmployeeArray,
             },
             {
                 name: "role",
@@ -228,13 +240,13 @@ async function updateEmployee(callback) {
                 name: "manager",
                 type: "list",
                 message: "Who is the new manager for this employee?",
-                choices: employeeArray,
+                choices: EmployeeArray,
             },
         ])
         .then(function(response) {
             let employeeid;
             for (let i = 0; i < employeeTable.length; i++) {
-                if (response.employee === employeeTable[i].first_name) {
+                if (response.employee === employeeTable[i].full_name) {
                     employeeid = employeeTable[i].id;
                 }
             }
@@ -244,13 +256,17 @@ async function updateEmployee(callback) {
                     roleid = roleTable[i].id;
                 }
             }
-            let managerid;
-            for (let i = 0; i < employeeTable.length; i++) {
-                if (response.manager === employeeTable[i].first_name) {
-                    managerid = employeeTable[i].id;
+            let managerID;
+            for (let i = 0; i < message.length; i++) {
+                if (message[i].full_name === response.manager) {
+                    managerID = message[i].id;
+                    break;
                 }
             }
-            orm.updateEmployee(roleid, managerid, employeeid);
+
+            console.log(response);
+            console.log(managerID);
+            orm.updateEmployee(roleid, managerID, employeeid);
             callback();
         });
 }
