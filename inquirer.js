@@ -2,6 +2,7 @@ const inquirer = require("inquirer");
 const orm = require("./queryRequests/orm");
 const cTable = require("console.table");
 
+//starts the initial prompt users will see. Based off their answer the kickoff function will run a function the queries the data requested by user.
 kickOff();
 
 function kickOff() {
@@ -15,6 +16,7 @@ function kickOff() {
                 "View All Employees by Department",
                 "View All Employees by Manager",
                 "Add Employee",
+                "View by table",
                 "Add role",
                 "Add department",
                 "Remove Employee",
@@ -29,27 +31,35 @@ function kickOff() {
                     orm.CompanyDetailByEmployee(kickOff);
                     break;
                 case "View All Employees by Department":
+                    //displays table of all employees by specific department
                     viewAllEmpByDep(kickOff);
                     break;
-                case "View by Table":
+                case "View by table":
+                    //allows you to view the data in either the employee, department, or role table
                     viewByTable(kickOff);
                     break;
                 case "View All Employees by Manager":
+                    //view employees in a filtered manager view
                     viewEmployeesByManager(kickOff);
                     break;
                 case "Add Employee":
+                    //Adds an employee
                     addNewemployee(kickOff);
                     break;
                 case "Add role":
+                    //Adds a role
                     newRole(kickOff);
                     break;
                 case "Add department":
+                    //Adds a department
                     addNewDepartment(kickOff);
                     break;
                 case "Remove Employee":
+                    //deletes an employee
                     removeEmployee(kickOff);
                     break;
                 case "Update Employee Role and/or Department":
+                    //allows the users to update an employees role and or department
                     updateEmployee(kickOff);
                     break;
             }
@@ -201,7 +211,6 @@ function viewByTable(callback) {
             orm.SelectTableView(response.viewByArea).then((data) => {
                 console.table(data);
             });
-            callback();
         })
         .catch(function(error) {
             console.log("not Working" + error);

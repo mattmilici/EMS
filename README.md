@@ -16,6 +16,9 @@ link -> https://drive.google.com/file/d/1chJt0M5SK5Qgz5wDv83n_ZJUm1dQSyUY/view
 - Roles - Every role will have a salary and a department_Id that links to a department name
 - Employee - Every employee will have a first name, last name, role id, and manager id
 
+![standard prompts you will/can be asked](./img/img1.png)
+![results from the query request](./img/img2.png)
+
 As a business owner
 I want to be able to view and manage the departments, roles, and employees in my company
 So that I can organize and plan my business

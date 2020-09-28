@@ -149,6 +149,9 @@ var orm = {
             });
         });
     },
+    // ------------------
+
+    // ---------------
 
     listOfEmployees: function employeeList() {
         return new Promise(function(resolve, reject) {
@@ -164,6 +167,9 @@ var orm = {
             );
         });
     },
+    // ------------------
+
+    // ---------------
     updateEmployee: function updateEmployee(roleid, managerid, employeeid) {
         return new Promise(function(resolve, reject) {
             connection.query(
@@ -178,6 +184,9 @@ var orm = {
             );
         });
     },
+    // ------------------
+
+    // ---------------
 
     addDepartment: function addDepartment(name) {
         return new Promise(function(resolve, reject) {
@@ -207,6 +216,7 @@ var orm = {
             );
         });
     },
+    // ------------------
 };
 
 module.exports = orm;
